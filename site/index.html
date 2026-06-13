@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DNS &amp; Cert Health — ToolWizHub</title>
+  <meta name="description" content="Check any domain's DNS records, TLS certificate expiry & chain, and common misconfigurations. A free ToolWizHub tool." />
+
+  <meta property="og:title" content="DNS & Cert Health — ToolWizHub" />
+  <meta property="og:description" content="Check any domain's DNS, TLS certificate expiry, and misconfigurations." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://dns.toolwizhub.com" />
+
+  <link rel="icon" type="image/webp" href="assets/favicon.webp" />
+  <link rel="apple-touch-icon" href="assets/logo-icon.webp" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="appbar">
+      <a class="brand" href="https://toolwizhub.com" aria-label="ToolWizHub DNS Health">
+        <img class="brand__mark" src="assets/logo-icon.webp" alt="ToolWizHub" width="42" height="42" />
+        <span class="brand__text">
+          <strong>ToolWizHub</strong>
+          <span>DNS &amp; CERT HEALTH</span>
+        </span>
+      </a>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <h1 class="hero__title">Is your domain healthy?</h1>
+        <p class="hero__sub">Check any public domain's DNS records, TLS certificate expiry, and chain — instantly.</p>
+        <form class="search" id="search">
+          <input class="search__input" id="domain" type="text" placeholder="example.com" autocomplete="off"
+                 autocapitalize="off" spellcheck="false" aria-label="Domain to check" />
+          <button class="search__btn" id="check-btn" type="submit">Check</button>
+        </form>
+        <p class="hint" id="hint">Tip: try <button class="example" data-domain="hunch.in">hunch.in</button>,
+          <button class="example" data-domain="github.com">github.com</button>,
+          <button class="example" data-domain="cloudflare.com">cloudflare.com</button></p>
+      </section>
+
+      <section class="results" id="results" hidden></section>
+    </main>
+
+    <footer class="app-footer">
+      <a class="app-footer__brand" href="https://toolwizhub.com" target="_blank" rel="noopener" title="More free tools at ToolWizHub">
+        <span class="app-footer__label">More free tools at</span>
+        <img src="assets/logo-horizontal.webp" alt="ToolWizHub" />
+      </a>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
