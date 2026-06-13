@@ -1,0 +1,11 @@
+{
+  "name": "toolwizhub-dns-health-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "node src/dev.js",
+    "test": "node tests/check.test.js"
+  }
+}

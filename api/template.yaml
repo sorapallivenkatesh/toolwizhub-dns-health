@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: ToolWizHub DNS/Cert Health API (Lambda + HTTP API)
+
+Parameters:
+  AllowOrigin:
+    Type: String
+    Default: "https://dns.toolwizhub.com"
+    Description: CORS origin allowed to call the API.
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 256
+
+Resources:
+  CheckApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowOrigin
+          - "http://localhost:8080"
+        AllowMethods: ["POST", "OPTIONS"]
+        AllowHeaders: ["content-type"]
+
+  CheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.handler
+      CodeUri: ./
+      Environment:
+        Variables:
+          ALLOW_ORIGIN: !Ref AllowOrigin
+          LOG_LEVEL: info
+      Events:
+        Check:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CheckApi
+            Path: /check
+            Method: POST
+
+Outputs:
+  ApiUrl:
+    Description: Invoke base URL
+    Value: !Sub "https://${CheckApi}.execute-api.${AWS::Region}.amazonaws.com"
