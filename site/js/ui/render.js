@@ -177,6 +177,30 @@ function fullDnsCard(dns) {
   }
 
   let any = false;
+
+  const soa = dns.SOA;
+  if (soa) {
+    any = true;
+    const sec = dnsSection("SOA Record");
+    const grid = el("div", "soa-grid");
+    const fields = [
+      ["Primary NS", soa.nsname],
+      ["Hostmaster", soa.hostmaster],
+      ["Serial", String(soa.serial)],
+      ["Refresh", `${soa.refresh}s`],
+      ["Retry", `${soa.retry}s`],
+      ["Expire", `${soa.expire}s`],
+      ["Min TTL", `${soa.minttl}s`],
+    ];
+    for (const [k, v] of fields) {
+      const cell = el("div", "soa-cell");
+      cell.append(txt("span", "soa-cell__k", k), txt("span", "soa-cell__v", v));
+      grid.append(cell);
+    }
+    sec.append(grid);
+    body.append(sec);
+  }
+
   const txtRecs = dns.TXT || [];
   if (txtRecs.length) {
     any = true;
@@ -199,7 +223,7 @@ function fullDnsCard(dns) {
     body.append(sec);
   }
 
-  if (!any) body.append(el("div", "dns-empty", "No TXT or CAA records found"));
+  if (!any) body.append(el("div", "dns-empty", "No SOA, TXT, or CAA records found"));
   card.append(body);
   return card;
 }
