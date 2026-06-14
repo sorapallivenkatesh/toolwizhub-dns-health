@@ -157,9 +157,17 @@ function recSection(label, values, cap) {
   sec.append(headRow);
 
   const box = el("div", "rec-box");
-  const shown = values.slice(0, cap);
-  for (const v of shown) box.append(txt("div", "rec-box__line", v));
-  if (values.length > cap) box.append(txt("div", "rec-more", `+ ${values.length - cap} others`));
+  const paint = (limit) => {
+    box.replaceChildren();
+    for (const v of values.slice(0, limit)) box.append(txt("div", "rec-box__line", v));
+    if (values.length > limit) {
+      const more = txt("button", "rec-more", `+ ${values.length - limit} others`);
+      more.type = "button";
+      more.addEventListener("click", () => paint(values.length));
+      box.append(more);
+    }
+  };
+  paint(cap);
   sec.append(box);
   return sec;
 }
@@ -187,10 +195,10 @@ function fullDnsCard(dns) {
       ["Primary NS", soa.nsname],
       ["Hostmaster", soa.hostmaster],
       ["Serial", String(soa.serial)],
-      ["Refresh", `${soa.refresh}s`],
-      ["Retry", `${soa.retry}s`],
-      ["Expire", `${soa.expire}s`],
-      ["Min TTL", `${soa.minttl}s`],
+      ["Refresh", humanizeDuration(soa.refresh)],
+      ["Retry", humanizeDuration(soa.retry)],
+      ["Expire", humanizeDuration(soa.expire)],
+      ["Min TTL", humanizeDuration(soa.minttl)],
     ];
     for (const [k, v] of fields) {
       const cell = el("div", "soa-cell");
@@ -255,6 +263,21 @@ function kv(k, v) {
   const row = el("div", "kv");
   row.append(txt("span", "kv__k", k), txt("span", "kv__v", v));
   return row;
+}
+
+function humanizeDuration(sec) {
+  if (sec == null || Number.isNaN(Number(sec))) return "—";
+  sec = Number(sec);
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const parts = [];
+  if (d) parts.push(`${d}d`);
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}m`);
+  if (s && !d && !h) parts.push(`${s}s`);
+  return parts.slice(0, 2).join(" ") || "0s";
 }
 
 function fmtDate(iso) {
