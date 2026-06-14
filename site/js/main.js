@@ -1,6 +1,7 @@
 /* main.js — wire the form to the API and render results. */
 
 import { renderReport, renderLoading, renderError } from "./ui/render.js";
+import { playSplash } from "./ui/splash.js";
 
 const form = document.getElementById("search");
 const input = document.getElementById("domain");
@@ -47,3 +48,5 @@ if (deep) {
   input.value = deep;
   check(deep);
 }
+
+playSplash();

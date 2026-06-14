@@ -17,8 +17,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <script>
+    // Skip the splash (no flash) if it already played this tab session.
+    try { if (sessionStorage.getItem("dnshealth:splashed")) document.documentElement.classList.add("no-splash"); } catch (e) {}
+  </script>
 </head>
 <body>
+  <!-- ░░░ Splash screen (covers the app until JS dismisses it) ░░░ -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash__stage">
+      <div class="splash__glow"></div>
+      <div class="splash__sparkles"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <img class="splash__logo" src="assets/logo-full.webp" alt="ToolWizHub" width="200" height="200" />
+      <div class="splash__tagline">DNS Health</div>
+      <div class="splash__bar"><span></span></div>
+    </div>
+  </div>
+
   <div class="app">
     <header class="appbar">
       <a class="brand" href="https://toolwizhub.com" aria-label="ToolWizHub DNS Health">
