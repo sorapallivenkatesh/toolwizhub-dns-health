@@ -121,6 +121,9 @@ Deep-link / auto-run: `http://localhost:8080/?d=example.com`.
 
 ## Deploy
 
+> Full step-by-step (AWS account setup, SAM, Cloudflare Pages, custom domain, troubleshooting):
+> see **[DEPLOY.md](DEPLOY.md)**. Quick version below.
+
 - **API** → AWS Lambda + HTTP API via SAM:
   ```bash
   cd api && sam build && sam deploy --guided \
