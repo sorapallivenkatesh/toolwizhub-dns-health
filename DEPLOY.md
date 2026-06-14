@@ -33,11 +33,11 @@ brew install aws-sam-cli awscli      # SAM + AWS CLI
 sam --version
 ```
 
-### AWS account setup (personal account — keep work account untouched)
+### AWS account setup (dedicated deploy profile)
 
-Work account `478110679327` (`venky`) is the CLI `default` profile — **do not deploy there.**
+Use a dedicated named CLI profile for this project so deploys can't land in the wrong account.
 
-1. **Personal IAM user:** `venkatesh_toolwizhub`.
+1. **IAM user:** `venkatesh_toolwizhub`.
 2. **Attach the `sam-deploy` policy** (least-privilege, no admin — see [Appendix C](#appendix-c--sam-deploy-iam-policy)).
 3. **Create an access key** (IAM → user → Security credentials → Create access key → CLI).
 4. **Configure a named profile:**
@@ -49,7 +49,7 @@ Work account `478110679327` (`venky`) is the CLI `default` profile — **do not 
    ```
 5. **Verify + lock the shell to personal (safety check):**
    ```bash
-   aws sts get-caller-identity --profile personal     # Account must NOT be 478110679327
+   aws sts get-caller-identity --profile personal     # confirm it's the intended account
    export AWS_PROFILE=personal
    ```
 
@@ -220,4 +220,4 @@ Least-privilege policy for SAM deploys (attach to `venkatesh_toolwizhub`). Repla
   CORS in the Lambda (needed for local dev) and remove `CorsConfiguration` from `template.yaml`.
   Also confirm you're testing from `dns-health.toolwizhub.com`.
 - **Deployed to the wrong account** — always run `aws sts get-caller-identity --profile personal`
-  before deploying; it must not be `478110679327`.
+  before deploying and confirm it's the intended account.
