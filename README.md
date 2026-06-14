@@ -4,9 +4,9 @@ Check any **public** domain's DNS records, **TLS certificate** expiry & chain, a
 **domain registration** status. A ToolWizHub tool for **dns-health.toolwizhub.com**.
 
 ```
-hunch.in                                                    SERVER IP 99.86.30.29
-✓ Certificate     valid 111 more days   (Amazon · expires Oct 3 2026 · chain trusted)
-✓ Registration    1950 days left         (Key-Systems GmbH · expires Oct 16 2031)
+example.com                                                 SERVER IP 93.184.216.34
+✓ Certificate     valid 88 more days    (DigiCert · expires Sep 12 2026 · chain trusted)
+✓ Registration    412 days left          (Example Registrar · expires Aug 1 2027)
   Records         A · AAAA · CNAME · MX · NS · SOA · TXT · CAA
 ```
 

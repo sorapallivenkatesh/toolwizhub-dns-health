@@ -6,10 +6,10 @@ import { isPrivateIP } from "../src/lib/ssrf.js";
 
 /* normalizeHostname */
 assert.equal(normalizeHostname("Example.com"), "example.com");
-assert.equal(normalizeHostname("  HUNCH.in  "), "hunch.in");
-assert.equal(normalizeHostname("https://dash.hunch.in/path?x=1"), "dash.hunch.in");
-assert.equal(normalizeHostname("dash.hunch.in:443"), "dash.hunch.in");
-assert.equal(normalizeHostname("assets.hunch.in."), "assets.hunch.in");
+assert.equal(normalizeHostname("  ACME.io  "), "acme.io");
+assert.equal(normalizeHostname("https://dash.acme.io/path?x=1"), "dash.acme.io");
+assert.equal(normalizeHostname("dash.acme.io:443"), "dash.acme.io");
+assert.equal(normalizeHostname("assets.acme.io."), "assets.acme.io");
 assert.throws(() => normalizeHostname("not a domain"), /valid domain/);
 assert.throws(() => normalizeHostname(""), /Enter a domain/);
 assert.throws(() => normalizeHostname("localhost"), /valid domain/); // no TLD
