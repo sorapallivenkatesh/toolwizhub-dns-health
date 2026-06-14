@@ -90,10 +90,22 @@ curl -s -X POST "<ApiUrl>/check" -H 'content-type: application/json' \
 
 ## 2. Custom domain for the API → `api.dns-health.toolwizhub.com`
 
-Maps the pretty hostname to the HTTP API. (AWS can't edit Cloudflare DNS, so the cert validation
-and final CNAME are added manually in Cloudflare.)
+Maps the pretty hostname to the HTTP API. Each sub-step runs in a specific place:
 
-**a. Request an ACM certificate** (same region as the API):
+| Sub-step | Where |
+| --- | --- |
+| 2a request cert | AWS (ACM) |
+| 2a add validation record | Cloudflare (DNS) |
+| 2b custom domain + mapping | AWS (API Gateway) |
+| 2c routing CNAME | Cloudflare (DNS) |
+
+> The cert lives in **ACM (AWS) only** — API Gateway terminates TLS and only accepts ACM certs.
+> Cloudflare's role is purely DNS (two grey-cloud records). The frontend's own cert is separate
+> and auto-issued by Cloudflare in step 3.
+
+### 2a. Request + validate the ACM certificate
+
+**Request** (must be the **same region as the API**, `ap-south-1`):
 
 ```bash
 aws acm request-certificate \
@@ -101,27 +113,79 @@ aws acm request-certificate \
   --validation-method DNS --region ap-south-1
 ```
 
-Get the **validation CNAME** (Console → ACM → the cert → "Create records" shows name/value, or
-`aws acm describe-certificate`). Add it in **Cloudflare DNS** (DNS-only). Wait for status **Issued**.
+**Get the validation CNAME** — Console → **ACM** (region `ap-south-1`) → the pending cert →
+**Domains** section shows a CNAME **name** + **value** (ignore the "Create records in Route 53"
+button — DNS is in Cloudflare). Or via CLI:
 
-**b. Create the API Gateway custom domain + mapping** (Console → **API Gateway → Custom domain
-names → Create**):
+```bash
+aws acm list-certificates --region ap-south-1 \
+  --query "CertificateSummaryList[?DomainName=='api.dns-health.toolwizhub.com'].CertificateArn" --output text
+aws acm describe-certificate --region ap-south-1 --certificate-arn <ARN> \
+  --query "Certificate.DomainValidationOptions[].ResourceRecord"
+```
 
-- Domain name: `api.dns-health.toolwizhub.com`
-- TLS cert: the ACM cert from step a
-- Add an **API mapping** → select your HTTP API → stage `$default`
-- Copy the **API Gateway domain** target shown: `d-xxxx.execute-api.ap-south-1.amazonaws.com`
+**Add it in Cloudflare** (`toolwizhub.com` zone → DNS → Add record):
+- **Type:** CNAME
+- **Name:** ⚠️ strip the zone suffix — Cloudflare auto-appends `.toolwizhub.com`:
+  ```
+  ACM name:  _abc123.api.dns-health.toolwizhub.com.
+  Cloudflare Name:  _abc123.api.dns-health
+  ```
+  (Pasting the full name creates `…toolwizhub.com.toolwizhub.com` and validation never passes.)
+- **Target:** the ACM value, e.g. `_xyz789.mhbtsbpdnt.acm-validations.aws`
+- **Proxy:** **DNS only (grey cloud)** — a proxied record breaks validation
+- **Save**
 
-**c. Point Cloudflare at it** — in the `toolwizhub.com` zone, add:
+**Wait for Issued** (a few minutes, up to ~30):
+
+```bash
+aws acm describe-certificate --region ap-south-1 --certificate-arn <ARN> \
+  --query "Certificate.Status" --output text     # PENDING_VALIDATION → ISSUED
+```
+
+### 2b. Create the API Gateway custom domain + mapping  (AWS — API Gateway console)
+
+1. AWS Console → **API Gateway** (region `ap-south-1`) → **Custom domain names** → **Create**.
+2. **Domain name:** `api.dns-health.toolwizhub.com`
+3. **API endpoint type:** **Regional** (HTTP APIs are regional)
+4. **Minimum TLS version:** TLS 1.2
+5. **ACM certificate:** select the cert from 2a (must be **Issued**, region `ap-south-1` — if it's
+   not in the dropdown, it's the wrong region or not yet issued)
+6. **Create domain name.**
+7. Open the domain → **API mappings** → **Configure API mappings** → **Add new mapping**:
+   - **API:** `toolwizhub-dns-health` · **Stage:** `$default` · **Path:** (empty) → **Save**
+8. Copy the **"API Gateway domain name"** target: `d-xxxx.execute-api.ap-south-1.amazonaws.com`
+
+CLI alternative:
+
+```bash
+aws apigatewayv2 create-domain-name --region ap-south-1 \
+  --domain-name api.dns-health.toolwizhub.com \
+  --domain-name-configurations CertificateArn=<ACM_ARN>,EndpointType=REGIONAL,SecurityPolicy=TLS_1_2
+aws apigatewayv2 get-apis --region ap-south-1 \
+  --query "Items[?Name=='toolwizhub-dns-health'].ApiId" --output text
+aws apigatewayv2 create-api-mapping --region ap-south-1 \
+  --domain-name api.dns-health.toolwizhub.com --api-id <ApiId> --stage '$default'
+aws apigatewayv2 get-domain-name --region ap-south-1 \
+  --domain-name api.dns-health.toolwizhub.com \
+  --query "DomainNameConfigurations[0].ApiGatewayDomainName" --output text   # the d-xxxx target
+```
+
+### 2c. Point Cloudflare at the target  (Cloudflare — DNS)
+
+In the `toolwizhub.com` zone, add:
 
 ```
 CNAME   api.dns-health   →   d-xxxx.execute-api.ap-south-1.amazonaws.com
 ```
 
-Set it **DNS-only (grey cloud)** so AWS serves the ACM cert (orange cloud would make Cloudflare
-terminate TLS and break it).
+Set it **DNS-only (grey cloud)**, NOT proxied. Why: API Gateway routes by **SNI/Host** — the
+browser must reach AWS directly so the TLS SNI is `api.dns-health.toolwizhub.com`, which matches
+the custom domain and serves the ACM cert. If proxied (orange), Cloudflare terminates TLS and
+re-originates with the wrong SNI/Host → API Gateway returns 403 / TLS handshake errors. Trade-off:
+no Cloudflare proxy features (caching/WAF) on the API — fine for a `POST /check` endpoint.
 
-**d. Verify:**
+### 2d. Verify
 
 ```bash
 curl -s -X POST https://api.dns-health.toolwizhub.com/check \
