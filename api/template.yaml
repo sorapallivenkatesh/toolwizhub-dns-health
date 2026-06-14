@@ -5,7 +5,7 @@ Description: ToolWizHub DNS/Cert Health API (Lambda + HTTP API)
 Parameters:
   AllowOrigin:
     Type: String
-    Default: "https://dns.toolwizhub.com"
+    Default: "https://dns-health.toolwizhub.com"
     Description: CORS origin allowed to call the API.
 
 Globals:

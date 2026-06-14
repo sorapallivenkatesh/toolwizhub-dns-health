@@ -1,7 +1,7 @@
 # 🩺 ToolWizHub — DNS & Cert Health
 
 Check any **public** domain's DNS records, **TLS certificate** expiry & chain, and
-**domain registration** status. A ToolWizHub tool for **dns.toolwizhub.com**.
+**domain registration** status. A ToolWizHub tool for **dns-health.toolwizhub.com**.
 
 ```
 hunch.in                                                    SERVER IP 99.86.30.29
@@ -19,6 +19,50 @@ The other ToolWizHub tools are pure static — this one can't be. A browser **ca
 So the checks run server-side in real Node (`tls.connect`, `node:dns`). Cloudflare Workers
 can't do it either — their socket API doesn't expose the peer certificate — which is why the
 API runs on **AWS Lambda**, not Workers.
+
+## How it works (request flow)
+
+The frontend is a dumb form: it POSTs a domain and renders the JSON it gets back. All the
+real work (TLS handshake, DNS, RDAP) happens server-side. The only thing that differs between
+local and production is **which API URL the frontend calls** — chosen by `site/config.js`
+from `location.hostname`. The server code is identical in both.
+
+**Local (dev):**
+```
+Browser  http://localhost:8080            (python http.server serving site/)
+   │  click Check → main.js: fetch POST → http://localhost:3000/check  {domain}
+   │  (8080 → 3000 is cross-origin → browser sends a CORS preflight first)
+   ▼
+node api/src/dev.js  (one Node process on :3000)
+   │  wraps the HTTP request into an API-Gateway-shaped event → handler.handler()
+   │  → runCheck(): validate → SSRF guard → [DNS ∥ cert ∥ RDAP] w/ timeouts → findings
+   │  returns JSON (CORS "*" because ALLOW_ORIGIN env is unset in dev)
+   ▼
+Browser renders cards.  Logs print to the terminal.
+```
+
+**Hosted (production):**
+```
+Browser  https://dns-health.toolwizhub.com     (static site on Cloudflare Pages)
+   │  config.js sees hostname ≠ localhost → API_BASE = https://api.dns-health.toolwizhub.com
+   │  click Check → fetch POST → https://api.dns-health.toolwizhub.com/check  {domain}
+   │  (cross-origin → CORS preflight; API allows only the site origin)
+   ▼
+API Gateway (HTTP API)  →  invokes AWS Lambda  →  handler.handler()
+   │  same runCheck() logic, identical code
+   │  returns JSON (CORS restricted via ALLOW_ORIGIN env)
+   ▼
+Browser renders cards.  Logs go to CloudWatch (filter by reqId).
+```
+
+| | Local | Hosted |
+|---|---|---|
+| API runtime | `node dev.js` on `:3000` | API Gateway + Lambda (serverless) |
+| `API_BASE` | `http://localhost:3000` | `https://api.dns-health.toolwizhub.com` |
+| Who selects it | `config.js` via `location.hostname` | same file, other branch |
+| CORS | `*` (env unset) | restricted to `dns-health.toolwizhub.com` |
+| Logs | terminal stdout | CloudWatch |
+| TLS | plain http | ACM cert (API GW) + Cloudflare cert (Pages) |
 
 ## What it checks
 
@@ -50,7 +94,7 @@ site/                 static dashboard → Cloudflare Pages (glassmorphism / gra
   js/ui/render.js     result header, 3-card grid (cert / registration / primary records),
                       full DNS record set (SOA + TXT + CAA)
   assets/             ToolWizHub WebP brand
-  config.js           API base URL (localhost:3000 in dev, api-dns.toolwizhub.com in prod)
+  config.js           API base URL (localhost:3000 in dev, api.dns-health.toolwizhub.com in prod)
 ```
 
 ## Logging
@@ -80,11 +124,11 @@ Deep-link / auto-run: `http://localhost:8080/?d=example.com`.
 - **API** → AWS Lambda + HTTP API via SAM:
   ```bash
   cd api && sam build && sam deploy --guided \
-    --parameter-overrides AllowOrigin=https://dns.toolwizhub.com
+    --parameter-overrides AllowOrigin=https://dns-health.toolwizhub.com
   ```
-  Then map `api-dns.toolwizhub.com` to the HTTP API (ACM cert in AWS; add the CNAME in
+  Then map `api.dns-health.toolwizhub.com` to the HTTP API (ACM cert in AWS; add the CNAME in
   Cloudflare as **DNS-only / grey cloud**), and set `config.js` `API_BASE` to it.
-- **Frontend** → Cloudflare Pages, custom domain `dns.toolwizhub.com`.
+- **Frontend** → Cloudflare Pages, custom domain `dns-health.toolwizhub.com`.
 
 ## Security (public endpoint)
 
