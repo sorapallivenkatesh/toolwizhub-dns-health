@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dns-health.toolwizhub.com/sitemap.xml
